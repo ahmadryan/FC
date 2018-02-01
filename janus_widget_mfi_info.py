@@ -138,7 +138,19 @@ class widget_mfi_info( format_TextEdit ) :
 		self.prnt_tab( 1 )
 		self.prnt_htm( '<i>&Psi;<sub>B<sub><i> = ' )
 		self.prnt_dcm( self.core.mfi_psi_b_avg, 1, '<sup>o</sup>')
+		self.prnt_brk( )
 
+		self.prnt_brk( )
+
+		self.prnt_tab( 1 )
+		self.prnt_htm( '<i>&omega;<i> = ' )
+		self.prnt_dcm( self.core.mfi_omega, 2, 'radians/sec' )
+
+		self.prnt_brk( )
+
+		self.prnt_tab( 1 )
+		self.prnt_htm( '<i>&phi;<i> = ' )
+		self.prnt_dcm( self.core.mfi_phi, 2, '<sup>o</sup>')
 
 	#-----------------------------------------------------------------------
 	# DEFINE THE FUNCTION FOR RESPONDING TO THE "rset" SIGNAL.
