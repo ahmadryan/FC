@@ -879,9 +879,9 @@ class core( QObject ) :
 		y_y = [ y[i][1] for i in range( len( self.mfi_s ) ) ]
 		y_z = [ y[i][2] for i in range( len( self.mfi_s ) ) ]
 
-		( fitx, covarx ) = curve_fit( model, self.mfi_b_x, y_x )
-		( fity, covary ) = curve_fit( model, self.mfi_b_y, y_y )
-		( fitz, covarz ) = curve_fit( model, self.mfi_b_z, y_z )
+		( fitx, covarx ) = curve_fit( model, self.mfi_b_x, y_x, maxfev=5000 )
+		( fity, covary ) = curve_fit( model, self.mfi_b_y, y_y, maxfev=5000 )
+		( fitz, covarz ) = curve_fit( model, self.mfi_b_z, y_z, maxfev=5000 )
 
 		self.mfi_b_x_m = [ fitx[0] + fitx[1]*cos(fitx[2]*self.mfi_s[i] +
 		                   fitx[3] ) for i in range( len(self.mfi_s )) ]
@@ -894,10 +894,14 @@ class core( QObject ) :
 		self.avb_y  = fity[0]
 		self.avb_z  = fitz[0]
 
+		self.avb_vec = [ fitx[0], fity[0], fitz[0] ]
+
 		self.davb_x = fitx[1]
 		self.davb_y = fity[1]
 		self.davb_z = fitz[1]
 
+		self.davb_vec = [ fitx[1], fity[1], fitz[1] ]
+ 
 		self.mfi_omega = sum(fitx[2]+fity[2]+fitz[2])/3
 
 		self.mfi_phi   = 180*(sum(fitx[3]+fity[3]+fitz[3])/3)/pi
