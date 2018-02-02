@@ -58,112 +58,117 @@ import pickle
 
 from copy import deepcopy
 
+arcv = mfi_arcv_hres( )
+
+#arcv.load_rang('2008-03-12',100)
+
+( mfi_t, mfi_b_x, mfi_b_y,
+  mfi_b_z ) = arcv.load_rang('2008-03-01', 100 )
+
 
 # Establish the number of data.
 
-self.n_mfi = len( self.mfi_t )
+n_mfi = len( mfi_t )
 
 # Compute and store derived paramters.
 
-self.mfi_s = [ ( t - self.fc_spec['time'] ).total_seconds( )
-                                       for t in self.mfi_t ]
+mfi_s = [ ( t - mfi_t[0] ).total_seconds( )
+                                       for t in mfi_t ]
 
 # Compute the vector magnetic field.
 
-self.mfi_b_vec = [ [ self.mfi_b_x[i],
-                     self.mfi_b_y[i],
-                     self.mfi_b_z[i]                     ]
-                     for i in range( len( self.mfi_s ) ) ]
+mfi_b_vec = [ [ mfi_b_x[i],
+                     mfi_b_y[i],
+                     mfi_b_z[i]                     ]
+                     for i in range( len( mfi_s ) ) ]
 
 # Compute the magnetic field magnitude.
 
-self.mfi_b = [ sqrt( self.mfi_b_x[i]**2 +
-                     self.mfi_b_y[i]**2 +
-                     self.mfi_b_z[i]**2 )
-                     for i in range( len( self.mfi_b_x ) ) ]
+mfi_b = [ sqrt( mfi_b_x[i]**2 +
+                     mfi_b_y[i]**2 +
+                     mfi_b_z[i]**2 )
+                     for i in range( len( mfi_b_x ) ) ]
 
 # Compute the average magetic field and its norm.
 
-self.mfi_avg_vec = array( [ mean( self.mfi_b_x ),
-                            mean( self.mfi_b_y ),
-                            mean( self.mfi_b_z ) ] )
+mfi_avg_vec = array( [ mean( mfi_b_x ),
+                            mean( mfi_b_y ),
+                            mean( mfi_b_z ) ] )
 
-self.mfi_avg_mag = sqrt( self.mfi_avg_vec[0]**2 +
-                         self.mfi_avg_vec[1]**2 +
-                         self.mfi_avg_vec[2]**2   )
+mfi_avg_mag = sqrt( mfi_avg_vec[0]**2 +
+                         mfi_avg_vec[1]**2 +
+                         mfi_avg_vec[2]**2   )
 
-self.mfi_avg_nrm = self.mfi_avg_vec / self.mfi_avg_mag
+mfi_avg_nrm = mfi_avg_vec / mfi_avg_mag
 
-mfi_nrm     = [ ( self.mfi_b_x[i], self.mfi_b_y[i],
-                  self.mfi_b_z[i] ) /self.mfi_b[i]
-                  for i in range( len( self.mfi_b ) ) ]
+mfi_nrm     = [ ( mfi_b_x[i], mfi_b_y[i],
+                  mfi_b_z[i] ) /mfi_b[i]
+                  for i in range( len( mfi_b ) ) ]
 
 # Curve fitting for MFI data.
 
 def model( x, b0, db, w, p ) :
 
-	b = [ 0. for d in range( len( self.mfi_s ) ) ]
+	b = [ 0. for d in range( len( mfi_s ) ) ]
 
-	b =  [ b0 + db*cos( w*self.mfi_s[i] + p )
-	                   for i in range( len( self.mfi_s ) ) ]
-
-	print b[0]
+	b =  [ b0 + db*cos( w*mfi_s[i] + p )
+	                   for i in range( len( mfi_s ) ) ]
 	return b
 
-avb  = [ sum( [ self.mfi_b_vec[i][j]
-         for i in range( len( self.mfi_s ) ) ] )/
-         ( len(self.mfi_s ) ) for j in range ( 3 ) ]
+avb  = [ sum( [ mfi_b_vec[i][j]
+         for i in range( len( mfi_s ) ) ] )/
+         ( len(mfi_s ) ) for j in range ( 3 ) ]
 
-davb = [ std( array( [ self.mfi_b_vec[i][j]
-         for i in range( len( self.mfi_b_vec ) ) ] ) )
+davb = [ std( array( [ mfi_b_vec[i][j]
+         for i in range( len( mfi_b_vec ) ) ] ) )
          for j in range( 3 )                         ]
 
-y = transpose( [ model( [ self.mfi_b_vec[i][j]
-                           for i in range( len(self.mfi_s ) ) ],
+y = transpose( [ model( [ mfi_b_vec[i][j]
+                           for i in range( len(mfi_s ) ) ],
                            avb[j], davb[j], 1., 20. )
                            for j in range( 3 ) ]               )
 
-bx = self.mfi_b_x
+bx = mfi_b_x
 test_bx = model( bx, sum(bx)/len(bx), std(array(bx)),0.,0. )
 (tfit, tcovar) = curve_fit( model, bx, test_bx, maxfev=5000 )
+
 print tfit, sum(bx)/len(bx), std(array(bx))
 
+y = [ [ y[j][i] for i in range( 3 ) ]
+                for j in range( len( mfi_s )  ) ]
 
-y = [ [ y[j][i] for i in range(3)]
-                for j in range( len( self.mfi_s)  ) ]
-
-y_x = [ y[i][0] for i in range( len( self.mfi_s ) ) ]
-y_y = [ y[i][1] for i in range( len( self.mfi_s ) ) ]
-y_z = [ y[i][2] for i in range( len( self.mfi_s ) ) ]
+y_x = [ y[i][0] for i in range( len( mfi_s ) ) ]
+y_y = [ y[i][1] for i in range( len( mfi_s ) ) ]
+y_z = [ y[i][2] for i in range( len( mfi_s ) ) ]
 
 ( fitx, covarx ) = curve_fit(
-                         model, self.mfi_b_x, y_x, maxfev=5000 )
+                         model, mfi_b_x, y_x, maxfev=5000 )
 ( fity, covary ) = curve_fit(
-                         model, self.mfi_b_y, y_y, maxfev=5000 )
+                         model, mfi_b_y, y_y, maxfev=5000 )
 ( fitz, covarz ) = curve_fit(
-                         model, self.mfi_b_z, y_z, maxfev=5000 )
+                         model, mfi_b_z, y_z, maxfev=5000 )
 
-self.mfi_b_x_m = [ fitx[0] + fitx[1]*cos(fitx[2]*self.mfi_s[i] +
-                   fitx[3] ) for i in range( len(self.mfi_s )) ]
-self.mfi_b_y_m = [ fity[0] + fity[1]*cos(fity[2]*self.mfi_s[i] +
-                   fity[3] ) for i in range( len(self.mfi_s )) ]
-self.mfi_b_z_m = [ fitz[0] + fitz[1]*cos(fitz[2]*self.mfi_s[i] +
-                   fitz[3] ) for i in range( len(self.mfi_s )) ]
+mfi_b_x_m = [ fitx[0] + fitx[1]*cos(fitx[2]*mfi_s[i] +
+                   fitx[3] ) for i in range( len(mfi_s )) ]
+mfi_b_y_m = [ fity[0] + fity[1]*cos(fity[2]*mfi_s[i] +
+                   fity[3] ) for i in range( len(mfi_s )) ]
+mfi_b_z_m = [ fitz[0] + fitz[1]*cos(fitz[2]*mfi_s[i] +
+                   fitz[3] ) for i in range( len(mfi_s )) ]
 
-self.avb_x  = fitx[0]
-self.avb_y  = fity[0]
-self.avb_z  = fitz[0]
+avb_x  = fitx[0]
+avb_y  = fity[0]
+avb_z  = fitz[0]
 
-self.avb_vec = [ fitx[0], fity[0], fitz[0] ]
+avb_vec = [ fitx[0], fity[0], fitz[0] ]
 
-self.davb_x = fitx[1]
-self.davb_y = fity[1]
-self.davb_z = fitz[1]
+davb_x = fitx[1]
+davb_y = fity[1]
+davb_z = fitz[1]
 
-self.davb_vec = [ fitx[1], fity[1], fitz[1] ]
+davb_vec = [ fitx[1], fity[1], fitz[1] ]
 
-self.mfi_omega = sum( fitx[0]*fitx[2] + fity[0]*fity[2] +
-                      fitz[0]*fitz[2] ) / sum( self.avb_vec )
+mfi_omega = sum( fitx[0]*fitx[2] + fity[0]*fity[2] +
+                      fitz[0]*fitz[2] ) / sum( avb_vec )
 
-self.mfi_phi   = 180*( sum( fitx[0]*fitx[3] + fity[0]*fity[3] +
-                 fitz[0]*fitz[3] )/ ( pi*sum( self.avb_vec ) ) )
+mfi_phi   = 180*( sum( fitx[0]*fitx[3] + fity[0]*fity[3] +
+                 fitz[0]*fitz[3] )/ ( pi*sum( avb_vec ) ) )
