@@ -58,9 +58,9 @@ import pickle
 
 from copy import deepcopy
 
-arcv = mfi_arcv_hres( )
+start = time.time( )
 
-#arcv.load_rang('2008-03-12',100)
+arcv = mfi_arcv_hres( )
 
 ( mfi_t, mfi_b_x, mfi_b_y,
   mfi_b_z ) = arcv.load_rang('2008-03-01', 100 )
@@ -77,10 +77,8 @@ mfi_s = [ ( t - mfi_t[0] ).total_seconds( )
 
 # Compute the vector magnetic field.
 
-mfi_b_vec = [ [ mfi_b_x[i],
-                     mfi_b_y[i],
-                     mfi_b_z[i]                     ]
-                     for i in range( len( mfi_s ) ) ]
+mfi_b_vec = [ [ mfi_b_x[i], mfi_b_y[i], mfi_b_z[i]  ]
+                for i in range( len( mfi_s ) )      ]
 
 # Compute the magnetic field magnitude.
 
@@ -92,12 +90,12 @@ mfi_b = [ sqrt( mfi_b_x[i]**2 +
 # Compute the average magetic field and its norm.
 
 mfi_avg_vec = array( [ mean( mfi_b_x ),
-                            mean( mfi_b_y ),
-                            mean( mfi_b_z ) ] )
+                       mean( mfi_b_y ),
+                       mean( mfi_b_z ) ] )
 
 mfi_avg_mag = sqrt( mfi_avg_vec[0]**2 +
-                         mfi_avg_vec[1]**2 +
-                         mfi_avg_vec[2]**2   )
+                    mfi_avg_vec[1]**2 +
+                    mfi_avg_vec[2]**2   )
 
 mfi_avg_nrm = mfi_avg_vec / mfi_avg_mag
 
@@ -105,48 +103,67 @@ mfi_nrm     = [ ( mfi_b_x[i], mfi_b_y[i],
                   mfi_b_z[i] ) /mfi_b[i]
                   for i in range( len( mfi_b ) ) ]
 
-# Curve fitting for MFI data.
+#  Define the sinusoidal model for the data.
 
 def model( x, b0, db, w, p ) :
 
 	b = [ 0. for d in range( len( mfi_s ) ) ]
 
-	b =  [ b0 + db*cos( w*mfi_s[i] + p )
+	b = [ b0 + db*cos( w*mfi_s[i] + p )
 	                   for i in range( len( mfi_s ) ) ]
 	return b
+
+# Calculate average magnetic field.
 
 avb  = [ sum( [ mfi_b_vec[i][j]
          for i in range( len( mfi_s ) ) ] )/
          ( len(mfi_s ) ) for j in range ( 3 ) ]
 
+# Compute the standard deviation of magnetic field.
+
 davb = [ std( array( [ mfi_b_vec[i][j]
          for i in range( len( mfi_b_vec ) ) ] ) )
          for j in range( 3 )                         ]
 
-y = transpose( [ model( [ mfi_b_vec[i][j]
-                           for i in range( len(mfi_s ) ) ],
-                           avb[j], davb[j], 1., 20. )
+# Compute the modeled magnetic field.
+
+mdl_b_vec = transpose( [ model( [ mfi_b_vec[i][j]
+                           for i in range( len( mfi_s ) ) ],
+                           avb[j], davb[j], 0.1, 50. )
                            for j in range( 3 ) ]               )
 
-bx = mfi_b_x
-test_bx = model( bx, sum(bx)/len(bx), std(array(bx)),0.,0. )
-(tfit, tcovar) = curve_fit( model, bx, test_bx, maxfev=5000 )
-
-print tfit, sum(bx)/len(bx), std(array(bx))
-
-y = [ [ y[j][i] for i in range( 3 ) ]
+mdl_b_vec = [ [ mdl_b_vec[j][i] for i in range( 3 ) ]
                 for j in range( len( mfi_s )  ) ]
 
-y_x = [ y[i][0] for i in range( len( mfi_s ) ) ]
-y_y = [ y[i][1] for i in range( len( mfi_s ) ) ]
-y_z = [ y[i][2] for i in range( len( mfi_s ) ) ]
+mdl_b_x = [ mdl_b_vec[i][0] for i in range( len( mfi_s ) ) ]
+mdl_b_y = [ mdl_b_vec[i][1] for i in range( len( mfi_s ) ) ]
+mdl_b_z = [ mdl_b_vec[i][2] for i in range( len( mfi_s ) ) ]
+
+
+#def models(x, b0,db,w,p):
+#
+##	bv = [ [ 0. for i in range( 3 ) ] for d in range( len( mfi_s ) ) ]
+#
+#	bv = [ [ b0[j] + db[j]*cos( w*mfi_s[i] + p )
+#	       for j in range( 3 ) ]
+#	       for i in range( len( mfi_s ) ) ]
+#
+#	return bv
+#
+#mdl_b_vec = models( mfi_b_vec, avb, davb, 0., 0.)
+#
+#( fit, covar ) = curve_fit(
+#                         models, mfi_b_vec, mdl_b_vec, maxfev = 5000 )
+#print fit
 
 ( fitx, covarx ) = curve_fit(
-                         model, mfi_b_x, y_x, maxfev=5000 )
+                         model, mfi_b_x, mdl_b_x, maxfev=2000 )
 ( fity, covary ) = curve_fit(
-                         model, mfi_b_y, y_y, maxfev=5000 )
+                         model, mfi_b_y, mdl_b_y, maxfev=2000 )
 ( fitz, covarz ) = curve_fit(
-                         model, mfi_b_z, y_z, maxfev=5000 )
+                         model, mfi_b_z, mdl_b_z, maxfev=2000 )
+
+print fitx
 
 mfi_b_x_m = [ fitx[0] + fitx[1]*cos(fitx[2]*mfi_s[i] +
                    fitx[3] ) for i in range( len(mfi_s )) ]
@@ -172,3 +189,5 @@ mfi_omega = sum( fitx[0]*fitx[2] + fity[0]*fity[2] +
 
 mfi_phi   = 180*( sum( fitx[0]*fitx[3] + fity[0]*fity[3] +
                  fitz[0]*fitz[3] )/ ( pi*sum( avb_vec ) ) )
+
+print 'Computation time = ','%.6f'% (time.time()-start), 'seconds.'
