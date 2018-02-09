@@ -72,7 +72,6 @@ arcv = mfi_arcv_hres( )
 #( mfi_t, mfi_b_x, mfi_b_y,
 #  mfi_b_z ) = arcv.load_rang('2011-11-04-08-21-41', 600 )
 
-
 # Establish the number of data.
 
 n_mfi = len( mfi_t )

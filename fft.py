@@ -34,7 +34,9 @@ from numpy import amax, amin, append, arccos, arctan2, arange, argsort, array, \
                     average, cos, deg2rad, diag, dot, exp, indices, interp, \
                     mean, pi, polyfit, rad2deg, reshape, sign, sin, sum, sqrt, \
                     std, tile, transpose, where, zeros, shape, abs, linspace,\
-                    cross
+                    cross, angle
+
+from math import atan, degrees
 
 from numpy.linalg import lstsq, norm
 from numpy.fft import rfftfreq
@@ -43,7 +45,8 @@ from scipy.special     import erf
 from scipy.interpolate import interp1d
 from scipy.optimize    import curve_fit
 from scipy.stats       import pearsonr, spearmanr
-from scipy.fftpack import fft, rfft
+from scipy.fftpack     import fft, rfft
+from scipy.signal      import medfilt
 
 from janus_helper import round_sig
 
@@ -131,13 +134,16 @@ davb = [ std( array( [ mfi_b_vec[i][j]
          for j in range( 3 )                         ]
 
 N = len( mfi_s )
-T = 1./N
-w = [ ( 2*pi*i ) / ( max( mfi_s ) ) for i in range( len( mfi_s ) ) ]
-ww = rfftfreq(N)
+# w = [ i / ( max( mfi_s ) ) for i in range( len( mfi_s ) ) ]
+w = rfftfreq( N, 1/11. )
 
-af_x = rfft(mfi_b_x)
-af_y = rfft(mfi_b_y)
-af_z = rfft(mfi_b_z)
+af_x = fft(mfi_b_x)
+af_y = fft(mfi_b_y)
+af_z = fft(mfi_b_z)
+
+pf_x = [ degrees( angle(af_x[i] ) ) for i in range( len( mfi_s ) ) ]
+pf_y = [ degrees( angle(af_y[i] ) ) for i in range( len( mfi_s ) ) ]
+pf_z = [ degrees( angle(af_z[i] ) ) for i in range( len( mfi_s ) ) ]
 
 saf_x = [af_x[i]**2 for i in range( len( f_x ) ) ]
 saf_y = [af_y[i]**2 for i in range( len( f_x ) ) ]
@@ -146,10 +152,6 @@ saf_z = [af_z[i]**2 for i in range( len( f_x ) ) ]
 sf_x = [f_x[i]**2 for i in range( len( f_x ) ) ]
 sf_y = [f_y[i]**2 for i in range( len( f_x ) ) ]
 sf_z = [f_z[i]**2 for i in range( len( f_x ) ) ]
-
-xf = linspace(0.0, 1.0/(2.0*T), N/2 )
-
-omega = 1.67
 
 #def model( t, bt, db, p ) :
 #
@@ -165,9 +167,11 @@ omega = 1.67
 #                                     for i in range( len( mfi_s ) ) ]
 #bz_m = [ fity[0]*mfi_s[i] + 0.16*cos( omega * mfi_s[i] + fitz[2] )
 #                                     for i in range( len( mfi_s ) ) ]
+
 plt.close('all')
 
 #plt.figure( )
+
 #plt.plot( mfi_s, by, 'r' )
 #plt.plot( mfi_s, by_m, 'b' )
 
@@ -176,21 +180,30 @@ plt.close('all')
 #plt.plot( mfi_s, bz_m, 'b' )
 #plt.show( )
 
+fig, axs = plt.subplots( 3, 2, sharex = 'col' )
+fig.subplots_adjust(hspace=0)
 
-plt.figure( )
-plt.loglog( w[5:N//2], abs(af_x[5:N//2]), label = 'sf_x' )
-#plt.ylim(10**(-5), 10**5)
+axs[0,0].loglog( w[5:N//2], medfilt( abs( af_x[5:N//2] ), 5 ), 'r', label = 'f(x)' )
+axs[0,0].set_ylim( 10**(-1), 2*10**1 )
+axs[0,0].legend(loc="upper right")
 
-plt.figure( )
-plt.loglog( w[5:N//2], abs(af_y[5:N//2]), label = 'sf_y' )
+axs[1,0].loglog( w[5:N//2], medfilt( abs( af_y[5:N//2] ), 5 ), 'b', label = 'f(y)' )
 #plt.loglog( w[5:N//2], saf_y[5:N//2], label = 'saf_y' )
-#plt.ylim(10**(-5), 10**5)
+axs[1,0].set_ylim(10**(-1), 2*10**1)
+axs[1,0].legend(loc="upper right")
 
-plt.figure( )
-plt.loglog( w[5:N//2], abs(af_z[5:N//2]), label = 'sf_z' )
+axs[2,0].loglog( w[5:N//2], medfilt( abs( af_z[5:N//2] ), 5 ), 'k', label = 'f(z)' )
 #plt.loglog( w[5:N//2], saf_z[5:N//2], label = 'saf_z' )
-#plt.ylim(10**(-5), 10**5)
-#
+axs[2,0].set_ylim(10**(-1), 2*10**1)
+axs[2,0].legend(loc="upper right")
+
+axs[0,1].semilogx( w[5:N//2], angle( af_x[5:N//2] ) )
+axs[1,1].semilogx( w[5:N//2], angle( af_y[5:N//2] ) )
+axs[2,1].semilogx( w[5:N//2], angle( af_z[5:N//2] ) )
+
+[ axs[j,0].axvline( 0.05, linestyle=':' ) for j in range( 3 ) ]
+[ axs[j,1].axvline( 0.05, linestyle=':' ) for j in range( 3 ) ]
+
 #plt.figure( )
 #plt.plot( mfi_s[0:20], mfi_b_y[0:20], label = 'mfi_b_y' )
 #plt.plot( mfi_s[0:20], mfi_b_z[0:20], label = 'mfi_b_z' )
